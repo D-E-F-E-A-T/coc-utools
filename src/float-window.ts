@@ -29,7 +29,7 @@ export class FloatWindow {
     const isUpportWinblend = await this.nvim.call('exists', '+winblend')
     this.nvim.pauseNotification()
     if (isUpportWinblend) {
-      await win.setOption('winblend', 30)
+      win.setOption('winblend', 30, true)
     }
     win.setOption('number', false, true)
     win.setOption('relativenumber', false, true)
@@ -37,8 +37,8 @@ export class FloatWindow {
     win.setOption('cursorcolumn', false, true)
     win.setOption('conceallevel', 2, true)
     win.setOption('signcolumn', 'no', true)
-    win.setOption('foldcolumn', 1)
-    win.setOption('winhighlight', 'FoldColumn:NormalFloat')
+    win.setOption('foldcolumn', 1, true)
+    win.setOption('winhighlight', 'FoldColumn:NormalFloat', true)
     await this.nvim.resumeNotification()
   }
 

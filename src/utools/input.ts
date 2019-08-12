@@ -1,5 +1,5 @@
 import { FloatWindow } from '../float-window';
-import { Neovim, OutputChannel } from 'coc.nvim';
+import { Neovim, OutputChannel, workspace } from 'coc.nvim';
 import { config } from '../config'
 
 export class Input {
@@ -84,7 +84,11 @@ export class Input {
     lastline: number,
     linedata: string[]
   ) => {
+    const preInput = this.input.join('\n')
     this.input.splice(firstline, lastline - firstline, ...linedata)
+    if (preInput === this.input.join('\n')) {
+      return
+    }
     this.output && this.output.appendLine(`${firstline} ${lastline} ${linedata.join('-')} ${this.input.join('-')}`)
     await this.resizeWin()
     for (let idx = 0; idx < this.changeCbs.length; idx++) {

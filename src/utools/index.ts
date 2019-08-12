@@ -1,4 +1,4 @@
-import { Neovim, OutputChannel } from 'coc.nvim'
+import { Neovim, OutputChannel, Disposable, workspace } from 'coc.nvim'
 import { Input } from './input'
 import { Title } from './title';
 import { Result } from './result'
@@ -11,11 +11,13 @@ export interface ISource {
 }
 
 export class UTools {
+  private subscriptions: Disposable[] = []
   private isVisible: boolean = false
   private input: Input
   private title: Title
   private result: Result
-  private sources: ISource[] = []
+  private sources: Record<string, ISource> = {}
+  private activeSource: string
 
   constructor(private nvim: Neovim, private output: OutputChannel | undefined) {
     this.input = new Input(nvim, output)
@@ -23,15 +25,26 @@ export class UTools {
     this.result = new Result(nvim, output, this.input)
     this.input.onChange(async (input) => {
       this.output && this.output.appendLine(`source: ${input.join('')} ${this.sources.length}`)
-      for (let idx = 0; idx < this.sources.length; idx++) {
-        const source = this.sources[idx];
-        await source.callback(input, this.result, output)
+      if (this.activeSource) {
+        this.sources[this.activeSource].callback(input, this.result, output)
+      } else {
+        this.filter(input)
       }
     })
   }
 
   public async register(source: ISource) {
-    this.sources.push(source)
+    this.sources[source.name] = source
+  }
+
+  public active(name: string) {
+    this.activeSource = name
+    this.title.setTitle(name)
+  }
+
+  public filter(input: string[]) {
+    const names = Object.keys(this.sources)
+    this.result.updateContent(names)
   }
 
   public async show () {
@@ -41,11 +54,20 @@ export class UTools {
     this.isVisible = true
     await this.input.init()
     await this.title.init()
+    this.subscriptions.push(
+      workspace.registerLocalKeymap('n', '<Esc>', () => {
+        this.hide()
+      })
+    )
   }
 
   public async hide () {
     if (!this.isVisible) {
       return
+    }
+    for (let idx = 0; idx < this.subscriptions.length; idx++) {
+      const sub = this.subscriptions[idx];
+      await sub.dispose()
     }
     await this.input.dispose()
     await this.title.dispose()
@@ -65,11 +87,12 @@ export class UTools {
   }
 
   public async dispose() {
-    for (let index = 0; index < this.sources.length; index++) {
-      const source = this.sources[index];
+    const sources = Object.values(this.sources)
+    for (let index = 0; index < sources.length; index++) {
+      const source = sources[index];
       await source.dispose()
     }
-    this.sources = []
+    this.sources = {}
     await this.hide()
   }
 }
