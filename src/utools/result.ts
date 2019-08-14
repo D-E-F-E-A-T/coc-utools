@@ -1,5 +1,5 @@
 import { FloatWindow } from '../float-window';
-import { Neovim, OutputChannel } from 'coc.nvim';
+import { Neovim, OutputChannel, Buffer, Window } from 'coc.nvim';
 import { config } from '../config'
 import { Input } from './input'
 
@@ -26,6 +26,21 @@ export class Result {
     await this.initWin(content)
   }
 
+  public get winId (): number {
+    const { window } = this.floatWindow
+    return window && window.id
+  }
+
+  public get window (): Window {
+    const { window } = this.floatWindow
+    return window
+  }
+
+  public get buffer (): Buffer {
+    const { buffer } = this.floatWindow
+    return buffer
+  }
+
   private async initWin (content: string[]) {
     if (!content || !content.length) {
       return
@@ -38,7 +53,7 @@ export class Result {
     this.row = Math.floor(rows / 4)
     this.col = Math.floor((columns - this.width) / 2)
     await this.floatWindow.init({
-      focusable: false,
+      focusable: true,
       relative: 'editor',
       anchor: 'NW',
       height: content.length,

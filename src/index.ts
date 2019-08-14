@@ -1,7 +1,8 @@
-import { ExtensionContext, workspace, commands } from 'coc.nvim'
+import { ExtensionContext, workspace, commands, listManager } from 'coc.nvim'
 import { UTools } from './utools';
 import { config } from './config';
 import calculate from './source/calculate';
+import UtoolsCommands from './source/coc-list';
 
 type Trace = 'off' | 'message' | 'verbose'
 
@@ -23,8 +24,13 @@ export async function activate(context: ExtensionContext): Promise<void> {
   const utools = new UTools(workspace.nvim, output)
   context.subscriptions.push(utools)
 
+  // register utools's commands List
+  context.subscriptions.push(
+    listManager.registerList(new UtoolsCommands(utools))
+  )
+
   // register sources
-  utools.register(calculate)
+  utools.register(calculate(context))
 
   // register command
   context.subscriptions.push(
@@ -32,6 +38,14 @@ export async function activate(context: ExtensionContext): Promise<void> {
       await utools.show()
     })
   )
+
+  Object.values(utools.sources).forEach(source => {
+    context.subscriptions.push(
+      commands.registerCommand(`utools.${source.name}`, async () => {
+        await utools.active(source.name)
+      })
+    )
+  })
 
   // hide utools when blur
   context.subscriptions.push(

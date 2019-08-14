@@ -16,8 +16,9 @@ export class UTools {
   private input: Input
   private title: Title
   private result: Result
-  private sources: Record<string, ISource> = {}
   private activeSource: string
+
+  public sources: Record<string, ISource> = {}
 
   constructor(private nvim: Neovim, private output: OutputChannel | undefined) {
     this.input = new Input(nvim, output)
@@ -37,9 +38,10 @@ export class UTools {
     this.sources[source.name] = source
   }
 
-  public active(name: string) {
+  public async active(name: string) {
+    await this.show()
     this.activeSource = name
-    this.title.setTitle(name)
+    await this.title.setTitle(name)
   }
 
   public filter(input: string[]) {
@@ -59,6 +61,17 @@ export class UTools {
         this.hide()
       })
     )
+    this.subscriptions.push(
+      workspace.registerExprKeymap(
+        'i',
+        '<c-o>',
+        async () => {
+          await this.nvim.command('stopinsert')
+          await this.nvim.setWindow(this.result.window)
+        },
+        true
+      )
+    )
   }
 
   public async hide () {
@@ -72,6 +85,7 @@ export class UTools {
     await this.input.dispose()
     await this.title.dispose()
     await this.result.dispose()
+    this.activeSource = ''
     this.isVisible = false
   }
 
@@ -79,9 +93,9 @@ export class UTools {
     if (!this.isVisible) {
       return
     }
-    const { nvim, input } = this
+    const { nvim, input, result } = this
     const win = await nvim.window
-    if (win.id !== input.winId) {
+    if ([input.winId, result.winId].indexOf(win.id) === -1) {
       await this.hide()
     }
   }
