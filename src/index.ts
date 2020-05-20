@@ -3,6 +3,7 @@ import { UTools } from './utools';
 import { config } from './config';
 import calculate from './source/calculate';
 import UtoolsCommands from './source/coc-list';
+import {registerActions} from './actions';
 
 type Trace = 'off' | 'message' | 'verbose'
 
@@ -57,5 +58,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
         await utools.hideIfBlur()
       }
     })
+  )
+
+  context.subscriptions.push(
+    registerActions()
   )
 }
