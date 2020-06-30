@@ -1,25 +1,21 @@
 {
   "name": "coc-utools",
   "version": "1.0.0",
-  "description": "tool set for neovim",
-  "keywords": [
-    "tool",
-    "decode",
-    "encode"
-  ],
+  "description": "",
+  "keywords": [],
   "author": "iamcco <ooiss@qq.com>",
   "license": "MIT",
   "main": "./out/index.js",
   "repository": "https://github.com/iamcco/coc-utools",
   "engines": {
-    "coc": "^0.0.73"
+    "coc": "^0.0.77"
   },
   "activationEvents": [
     "*"
   ],
   "contributes": {
     "configuration": {
-      "title": "vim language server configuration",
+      "title": "utools configuration",
       "properties": {
         "utools.debug": {
           "type": "boolean",
@@ -45,25 +41,42 @@
     }
   },
   "scripts": {
-    "build": "tsc -p ./",
-    "watch": "tsc -w -p ./",
-    "test": "yarn jest"
+    "clean": "rm -rf ./out",
+    "build": "webpack",
+    "watch": "webpack -w",
+    "lint": "eslint --fix ./src/**/*.ts",
+    "test": "yarn jest",
+    "prepare": "npm run clean && npm run build"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint",
+      "pre-push": "npm run lint"
+    }
   },
   "devDependencies": {
     "@chemzqm/neovim": "^5.2.5",
     "@types/jest": "^25.2.3",
     "@types/node": "^12.6.8",
-    "coc.nvim": "^0.0.77",
-    "jest": "^26.0.1",
-    "ts-jest": "^26.0.0",
-    "typescript": "^3.9.3"
-  },
-  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^2.5.0",
+    "@typescript-eslint/parser": "^2.5.0",
     "change-case": "^4.1.1",
+    "coc.nvim": "^0.0.77",
     "colors": "^1.4.0",
     "decimal.js": "^10.2.0",
+    "eslint": "^6.6.0",
+    "eslint-config-prettier": "^6.5.0",
+    "eslint-plugin-prettier": "^3.1.1",
     "got": "^9.6.0",
+    "husky": "^3.0.9",
+    "jest": "^26.0.1",
+    "prettier": "^1.18.2",
+    "ts-jest": "^26.0.0",
+    "ts-loader": "^7.0.5",
     "tunnel": "^0.0.6",
-    "vscode-languageserver-protocol": "^3.15.3"
+    "typescript": "^3.9.3",
+    "vscode-languageserver-protocol": "^3.15.3",
+    "webpack": "^4.39.2",
+    "webpack-cli": "^3.3.6"
   }
 }
