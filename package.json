@@ -25,7 +25,7 @@
         "utools.maxWidth": {
           "type": "number",
           "default": 70,
-          "description": "maximum width of utools"
+          "description": "maximum width of utools window"
         },
         "utools.trace.server": {
           "type": "string",
@@ -57,6 +57,7 @@
   "devDependencies": {
     "@chemzqm/neovim": "^5.2.5",
     "@types/jest": "^25.2.3",
+    "@types/mathjs": "^6.0.5",
     "@types/node": "^12.6.8",
     "@typescript-eslint/eslint-plugin": "^2.5.0",
     "@typescript-eslint/parser": "^2.5.0",
@@ -70,6 +71,7 @@
     "got": "^9.6.0",
     "husky": "^3.0.9",
     "jest": "^26.0.1",
+    "mathjs": "^7.0.2",
     "prettier": "^1.18.2",
     "ts-jest": "^26.0.0",
     "ts-loader": "^7.0.5",

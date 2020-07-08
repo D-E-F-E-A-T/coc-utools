@@ -1,41 +1,72 @@
-import { Neovim, OutputChannel, Disposable, workspace } from 'coc.nvim';
+import { workspace, commands } from 'coc.nvim';
+
 import { InputWidget } from './input';
 import { Title } from './title';
 import { Result } from './result';
+import { logger } from '../common/logger';
+import { fuzzy } from '../common/fuzzy';
+import { Dispose } from '../common/dispose';
+
+const log = logger.getLog('utools');
 
 export interface USource {
   name: string;
   description: string;
-  callback: (input: string[], result: Result, output: OutputChannel | undefined) => Promise<any> | any;
+  resolve: (input: string[], result: Result) => Promise<any> | any;
   dispose: () => Promise<any> | any;
 }
 
-export class UTools {
-  private subscriptions: Disposable[] = [];
+class UTools extends Dispose {
   private isVisible = false;
   private input: InputWidget;
   private title: Title;
   private result: Result;
-  private activeSource: string;
 
-  public sources: Record<string, USource> = {};
+  public activeSource: string | undefined;
+  public sources: USource[] = [];
 
-  constructor(private nvim: Neovim, private output: OutputChannel | undefined) {
-    this.input = new InputWidget(nvim, output);
-    this.title = new Title(nvim, output);
-    this.result = new Result(nvim, output, this.input);
-    this.input.onChange(async input => {
-      this.output && this.output.appendLine(`source: ${input.join('')} ${this.sources.length}`);
-      if (this.activeSource) {
-        this.sources[this.activeSource].callback(input, this.result, output);
-      } else {
-        this.filter(input);
-      }
-    });
+  constructor() {
+    super();
+    this.input = new InputWidget();
+    this.title = new Title();
+    this.result = new Result(this.input);
+    this.input.onChange(this.onInputChange);
+
+    // hide utools when blur
+    this.push(
+      workspace.registerAutocmd({
+        event: 'WinEnter',
+        arglist: [],
+        request: true,
+        callback: async () => {
+          await this.hideIfBlur();
+        },
+      }),
+    );
   }
 
+  private onInputChange = async (input: string[]) => {
+    if (this.activeSource) {
+      this.sources.some(s => {
+        if (this.activeSource === s.name) {
+          s.resolve(input, this.result);
+          return true;
+        }
+        return false;
+      });
+    } else {
+      this.filter(input);
+    }
+  };
+
   public async register(source: USource) {
-    this.sources[source.name] = source;
+    log(`register source: ${source.name}`);
+    this.sources.push(source);
+    this.push(
+      commands.registerCommand(`utools.${source.name}`, async () => {
+        await this.active(source.name);
+      }),
+    );
   }
 
   public async active(name: string) {
@@ -45,7 +76,14 @@ export class UTools {
   }
 
   public filter(input: string[]) {
-    const names = Object.keys(this.sources);
+    let names = this.sources.map(s => s.name);
+    if (input.length > 0 && input[0].trim().length > 0) {
+      names = names.filter(name => {
+        const query = input.join().trim();
+        const score = fuzzy(name, query);
+        return score >= query.length;
+      });
+    }
     this.result.updateContent(names);
   }
 
@@ -53,34 +91,44 @@ export class UTools {
     if (this.isVisible) {
       return;
     }
+    const { nvim } = workspace;
     this.isVisible = true;
-    await this.input.init();
     await this.title.init();
-    this.subscriptions.push(
+    await this.input.init();
+    this.onInputChange([]);
+    this.push(
       workspace.registerLocalKeymap('n', '<Esc>', () => {
         this.hide();
       }),
     );
-    this.subscriptions.push(
+    this.push(
       workspace.registerExprKeymap(
         'i',
         '<c-o>',
         async () => {
-          await this.nvim.command('stopinsert');
-          await this.nvim.setWindow(this.result.window);
+          await nvim.command('stopinsert');
+          await nvim.setWindow(this.result.window);
         },
         true,
       ),
     );
   }
 
-  public async hide() {
+  public async hideIfBlur() {
     if (!this.isVisible) {
       return;
     }
-    for (let idx = 0; idx < this.subscriptions.length; idx++) {
-      const sub = this.subscriptions[idx];
-      await sub.dispose();
+    const { nvim } = workspace;
+    const { input, result } = this;
+    const win = await nvim.window;
+    if ([input.winId, result.winId].indexOf(win.id) === -1) {
+      await this.hide();
+    }
+  }
+
+  public async hide() {
+    if (!this.isVisible) {
+      return;
     }
     await this.input.dispose();
     await this.title.dispose();
@@ -89,24 +137,14 @@ export class UTools {
     this.isVisible = false;
   }
 
-  public async hideIfBlur() {
-    if (!this.isVisible) {
-      return;
-    }
-    const { nvim, input, result } = this;
-    const win = await nvim.window;
-    if ([input.winId, result.winId].indexOf(win.id) === -1) {
-      await this.hide();
-    }
-  }
-
   public async dispose() {
-    const sources = Object.values(this.sources);
-    for (let index = 0; index < sources.length; index++) {
-      const source = sources[index];
+    super.dispose();
+    for (const source of this.sources) {
       await source.dispose();
     }
-    this.sources = {};
+    this.sources = [];
     await this.hide();
   }
 }
+
+export const utools = new UTools();

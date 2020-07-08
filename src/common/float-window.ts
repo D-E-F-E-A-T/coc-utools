@@ -1,11 +1,18 @@
-import { Neovim, Window, Buffer, OutputChannel } from 'coc.nvim';
+import { Neovim, Window, Buffer, workspace } from 'coc.nvim';
 import { FloatOptions } from '@chemzqm/neovim/lib/api/types';
+
+import { logger } from './logger';
+
+const log = logger.getLog('FloatWindow');
 
 export class FloatWindow {
   private buf: Buffer | undefined;
   private win: Window | undefined;
+  private nvim: Neovim;
 
-  constructor(private nvim: Neovim, private output: OutputChannel | undefined) {}
+  constructor() {
+    this.nvim = workspace.nvim;
+  }
 
   private async createBuffer() {
     if (this.buf) {
@@ -22,9 +29,9 @@ export class FloatWindow {
     const win = await nvim.openFloatWindow(this.buf!, false, options);
     this.win = win;
 
-    const isUpportWinblend = await this.nvim.call('exists', '+winblend');
+    const isSupportWinblend = await this.nvim.call('exists', '+winblend');
     this.nvim.pauseNotification();
-    if (isUpportWinblend) {
+    if (isSupportWinblend) {
       win.setOption('winblend', 30, true);
     }
     win.setOption('number', false, true);
@@ -55,7 +62,7 @@ export class FloatWindow {
     const { win } = this;
     const isValid = win !== undefined ? await win.valid : false;
     if (!isValid) {
-      this.output && this.output!.appendLine(`Update window error: window ${(win && win!.id) || win} is invalid`);
+      log(`Update window error: window ${(win && win!.id) || win} is invalid`);
       return;
     }
 
@@ -66,7 +73,7 @@ export class FloatWindow {
     const { buf } = this;
     const isValid = buf !== undefined ? await buf.valid : false;
     if (!isValid) {
-      this.output && this.output!.appendLine(`Update buffer error: window ${(buf && buf.id) || buf} is invalid`);
+      log(`Update buffer error: window ${(buf && buf.id) || buf} is invalid`);
       return;
     }
     this.buf!.setLines(content, {
@@ -79,10 +86,12 @@ export class FloatWindow {
    * close win
    */
   private async closeWin() {
-    const { win } = this;
-    const isValid = win !== undefined ? await win.valid : false;
-    if (isValid) {
-      await win!.close(true);
+    if (this.win) {
+      try {
+        await this.win.close(true);
+      } catch (error) {
+        log(`Close window error: ${error}`);
+      }
     }
   }
 
@@ -90,10 +99,12 @@ export class FloatWindow {
    * clear buf
    */
   private async clearBuf() {
-    const { buf } = this;
-    const isValid = buf !== undefined ? await buf.valid : false;
-    if (isValid) {
-      await buf!.remove(0, -1);
+    if (this.buf) {
+      try {
+        await this.buf!.remove(0, -1);
+      } catch (error) {
+        log(`Clear buffer error: ${error}`);
+      }
     }
   }
 

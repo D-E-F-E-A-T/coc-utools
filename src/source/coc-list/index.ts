@@ -1,37 +1,36 @@
-import {
-  IList,
-  ListAction,
-  ListContext,
-  ListItem,
-} from 'coc.nvim'
+import { IList, ListAction, ListItem } from 'coc.nvim';
 import colors from 'colors/safe';
 
-import { UTools } from '../../utools';
+import { utools } from '../../utools';
 
 export default class UtoolsCommands implements IList {
-  public readonly name = 'utools'
-  public readonly description = 'trigger utools\'s sources'
-  public readonly defaultAction = 'trigger'
-  public actions: ListAction[] = []
+  public readonly name = 'utools';
+  public readonly description = "open utools's sources";
+  public readonly defaultAction = 'open';
+  public actions: ListAction[] = [];
 
-  constructor(private utools: UTools) {
+  constructor() {
     this.actions.push({
-      name: 'trigger',
+      name: 'open',
       execute: async item => {
-        const list: ListItem[] = ([] as ListItem[]).concat(item)
-        this.utools.active(list[0].filterText)
-      }
-    })
+        const list: ListItem[] = ([] as ListItem[]).concat(item);
+        if (list && list[0] && list[0].data) {
+          utools.active(list[0].data.name);
+        }
+      },
+    });
   }
 
-  public async loadItems(_context: ListContext): Promise<ListItem[]> {
-    const list: ListItem[] = []
-    for (const source of Object.values(this.utools.sources)) {
+  public async loadItems(): Promise<ListItem[]> {
+    const list: ListItem[] = [];
+    for (const source of Object.values(utools.sources)) {
       list.push({
         label: `${colors.yellow(source.name)} ${colors.grey(source.description)}`,
-        filterText: source.name
-      })
+        data: {
+          name: source.name,
+        },
+      });
     }
-    return list
+    return list;
   }
 }

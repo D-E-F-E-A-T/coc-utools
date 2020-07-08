@@ -1,12 +1,12 @@
 import { ExtensionContext, workspace, commands, listManager } from 'coc.nvim';
-import { UTools } from './utools';
-import { config } from './config';
-import calculate from './source/calculate';
+
+import { utools } from './utools';
+import { config } from './common/config';
 import UtoolsCommands from './source/coc-list';
 import { registerActions } from './actions';
 import { ChangeCase } from './commands/changeCase';
-
-type Trace = 'off' | 'message' | 'verbose';
+import { logger, logLevel } from './common/logger';
+import { UtoolsSource } from './utools/sources';
 
 export async function activate(context: ExtensionContext): Promise<void> {
   const conf = workspace.getConfiguration('utools');
@@ -16,21 +16,20 @@ export async function activate(context: ExtensionContext): Promise<void> {
     return;
   }
 
-  const trace = conf.get<Trace>('trace.server', 'off');
-  const output = trace !== 'off' ? workspace.createOutputChannel('coc-utools') : undefined;
+  // init logger
+  context.subscriptions.push(logger.init(conf.get<logLevel>('trace.server', 'off')));
 
-  // init configuration
-  await config.init(workspace.nvim, conf);
+  // init config
+  context.subscriptions.push(await config.init(conf));
 
   // init utools
-  const utools = new UTools(workspace.nvim, output);
   context.subscriptions.push(utools);
 
   // register utools's commands List
-  context.subscriptions.push(listManager.registerList(new UtoolsCommands(utools)));
+  context.subscriptions.push(listManager.registerList(new UtoolsCommands()));
 
-  // register sources
-  utools.register(calculate(context));
+  // register utools's source
+  context.subscriptions.push(new UtoolsSource());
 
   // register command
   context.subscriptions.push(
@@ -39,27 +38,9 @@ export async function activate(context: ExtensionContext): Promise<void> {
     }),
   );
 
-  Object.values(utools.sources).forEach(source => {
-    context.subscriptions.push(
-      commands.registerCommand(`utools.${source.name}`, async () => {
-        await utools.active(source.name);
-      }),
-    );
-  });
-
-  // hide utools when blur
-  context.subscriptions.push(
-    workspace.registerAutocmd({
-      event: 'WinEnter',
-      arglist: [],
-      request: true,
-      callback: async () => {
-        await utools.hideIfBlur();
-      },
-    }),
-  );
-
+  // register actions
   context.subscriptions.push(registerActions());
 
+  // init change case command
   context.subscriptions.push(new ChangeCase());
 }

@@ -1,22 +1,31 @@
-import { FloatWindow } from '../float-window';
-import { Neovim, OutputChannel } from 'coc.nvim';
-import { config } from '../config';
+import { workspace } from 'coc.nvim';
+
+import { FloatWindow } from '../common/float-window';
+import { config } from '../common/config';
+import { logger } from '../common/logger';
+
+const log = logger.getLog('InputWidget');
 
 export class InputWidget {
   private changeCbs: Array<(input: string[]) => Promise<void>> = [];
   private input: string[] = [];
   private isAttached = false;
-  private height = 0;
+  private _height = 0;
   private width = 0;
   private row = 0;
   private col = 0;
   private floatWindow: FloatWindow;
-  constructor(private nvim: Neovim, private output: OutputChannel | undefined) {
-    this.floatWindow = new FloatWindow(nvim, output);
+
+  get height() {
+    return this._height;
+  }
+
+  constructor() {
+    this.floatWindow = new FloatWindow();
   }
 
   public async init() {
-    const { nvim } = this;
+    const { nvim } = workspace;
 
     // create input window
     await this.initInputWin();
@@ -35,22 +44,22 @@ export class InputWidget {
     // attach buffer to listen for change
     this.isAttached = await buffer.attach(false);
     if (!this.isAttached) {
-      this.output && this.output.appendLine(`Attach buffer error`);
+      log('Attach buffer error');
     }
     buffer.listen('lines', this.onChangeInput);
     buffer.listen('detach', () => {
       if (this.isAttached) {
-        this.output && this.output.appendLine(`Unexpected detach buffer`);
+        log('Unexpected detach buffer');
       }
     });
   }
 
   private async initInputWin() {
-    const { nvim } = this;
+    const { nvim } = workspace;
     const columns = (await nvim.getOption('columns')) as number;
     const rows = (await nvim.getOption('lines')) as number;
     this.width = config.width;
-    this.height = 1;
+    this._height = 1;
     this.row = Math.floor(rows / 4);
     this.col = Math.floor((columns - this.width) / 2);
     await this.floatWindow.init({
@@ -65,8 +74,8 @@ export class InputWidget {
   }
 
   private async resizeWin() {
-    if (this.height !== this.input.length) {
-      this.height = this.input.length;
+    if (this._height !== this.input.length) {
+      this._height = this.input.length;
       await this.floatWindow.updateWin({
         relative: 'editor',
         width: this.width,
@@ -89,7 +98,7 @@ export class InputWidget {
     if (preInput === this.input.join('\n')) {
       return;
     }
-    this.output && this.output.appendLine(`${firstline} ${lastline} ${linedata.join('-')} ${this.input.join('-')}`);
+    log(`${firstline} ${lastline} ${linedata.join('-')} ${this.input.join('-')}`);
     await this.resizeWin();
     for (let idx = 0; idx < this.changeCbs.length; idx++) {
       const cb = this.changeCbs[idx];
@@ -111,7 +120,7 @@ export class InputWidget {
   }
 
   public get winHeight(): number {
-    return this.height;
+    return this._height > 0 ? this._height : 1;
   }
 
   public async dispose() {

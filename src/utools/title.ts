@@ -1,14 +1,15 @@
-import { FloatWindow } from '../float-window';
-import { Neovim, OutputChannel } from 'coc.nvim';
-import { config } from '../config';
+import { workspace } from 'coc.nvim';
+
+import { FloatWindow } from '../common/float-window';
+import { config } from '../common/config';
 
 export class Title {
   private width = 0;
   private row = 0;
   private col = 0;
   private floatWindow: FloatWindow;
-  constructor(private nvim: Neovim, private output: OutputChannel | undefined) {
-    this.floatWindow = new FloatWindow(nvim, output);
+  constructor() {
+    this.floatWindow = new FloatWindow();
   }
 
   public async init() {
@@ -17,7 +18,7 @@ export class Title {
   }
 
   private async initTitleWin(title: string) {
-    const { nvim } = this;
+    const { nvim } = workspace;
     const width = (await nvim.call('strdisplaywidth', [title])) as number;
     this.width = width + 2; // foldColumn + end empty char = 2
     const rows = (await nvim.getOption('lines')) as number;
@@ -38,7 +39,7 @@ export class Title {
   }
 
   public async setTitle(title: string) {
-    const { nvim } = this;
+    const { nvim } = workspace;
     const width = (await nvim.call('strdisplaywidth', [title])) as number;
     await this.floatWindow.updateWin({
       relative: 'editor',
