@@ -1,6 +1,6 @@
 {
   "name": "coc-utools",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "",
   "keywords": [],
   "author": "iamcco <ooiss@qq.com>",
@@ -36,6 +36,35 @@
             "verbose"
           ],
           "description": "Trace level of coc-utools"
+        },
+        "utools.changeCase.toggle": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "enum": [
+              "camelCase",
+              "capitalCase",
+              "constantCase",
+              "dotCase",
+              "headerCase",
+              "noCase",
+              "paramCase",
+              "pascalCase",
+              "pathCase",
+              "sentenceCase",
+              "snakeCase",
+              "titleCase",
+              "swapCase",
+              "isLowerCase",
+              "isUpperCase",
+              "lowerCase",
+              "lowerCaseFirst",
+              "upperCase",
+              "upperCaseFirst",
+              "spongeCase"
+            ]
+          },
+          "description": "Toggle case between these cases"
         }
       }
     }

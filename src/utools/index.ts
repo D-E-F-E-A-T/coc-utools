@@ -6,6 +6,7 @@ import { Result } from './result';
 import { logger } from '../common/logger';
 import { fuzzy } from '../common/fuzzy';
 import { Dispose } from '../common/dispose';
+import { extensionId } from '../common/constant';
 
 const log = logger.getLog('utools');
 
@@ -32,6 +33,12 @@ class UTools extends Dispose {
     this.result = new Result(this.input);
     this.input.onChange(this.onInputChange);
 
+    // register command
+    this.push(
+      commands.registerCommand(`${extensionId}.open`, async () => {
+        await this.show();
+      }),
+    );
     // hide utools when blur
     this.push(
       workspace.registerAutocmd({

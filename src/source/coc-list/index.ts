@@ -3,9 +3,9 @@ import colors from 'colors/safe';
 
 import { utools } from '../../utools';
 
-export default class UtoolsCommands implements IList {
+export class UtoolsSources implements IList {
   public readonly name = 'utools';
-  public readonly description = "open utools's sources";
+  public readonly description = "utools's sources list";
   public readonly defaultAction = 'open';
   public actions: ListAction[] = [];
 
